@@ -310,6 +310,4 @@ Riwayat perubahan: [CHANGELOG.md](CHANGELOG.md).
 ## Lisensi
 
 [MIT](LICENSE)
-#   I m a g e - E n h a n c e m e n t  
- #   I m a g e - E n h a n c e m e n t  
- 
+#
