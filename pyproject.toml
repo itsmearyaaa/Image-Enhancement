@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imgenhance"
+version = "1.0.0"
+description = "Peningkatan kualitas citra (image enhancement) dengan OpenCV: operasi titik, histogram equalization, CLI, webcam, dan demo web."
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Muhamad Arya Satya Athaillah" }]
+keywords = ["image-processing", "image-enhancement", "histogram-equalization", "opencv", "pengolahan-citra"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Education",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "python-multipart>=0.0.9",
+]
+samples = [
+    "scikit-image>=0.21",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "httpx>=0.27",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "imgenhance[web]",
+]
+
+[project.scripts]
+imgenhance = "imgenhance.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+imgenhance = ["py.typed", "web/*.html"]
+
+# --------------------------------------------------------------------------- #
+# Kualitas kode
+# --------------------------------------------------------------------------- #
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "C4", "RUF"]
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # tanda baca non-ASCII pada teks berbahasa Indonesia
+    "B008",                        # File()/Form() sebagai default argumen adalah pola FastAPI
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.mypy]
+strict = true
+warn_unused_ignores = true
+files = ["src"]
+
+[[tool.mypy.overrides]]
+module = ["cv2.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore:Using .httpx. with .starlette.testclient. is deprecated",
+]
+
+[tool.coverage.run]
+source = ["src/imgenhance"]
+omit = ["src/imgenhance/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]

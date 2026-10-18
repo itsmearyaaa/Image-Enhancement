@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ImgEnhance - Peningkatan Kualitas Citra</title>
+<style>
+  :root {
+    --bg: #f5f5f9; --card: #ffffff; --ink: #1c1c24; --muted: #6a6a78; --line: #e2e2ea;
+    --accent: #4f46e5; --accent-ink: #ffffff; --before: #3b6ea5; --after: #e8731c; --err: #c0392b;
+    --red: #d63b3b; --green: #2f9e44; --blue: #2f6fd6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #13131a; --card: #1c1c26; --ink: #ececf2; --muted: #9a9aab; --line: #2d2d3a;
+      --accent: #8c85ff; --accent-ink: #12121a; --before: #6fa6dc; --after: #ff9a4d; --err: #ff7a6b;
+      --red: #ff6b6b; --green: #5fd07a; --blue: #6aa2ff;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding: 20px 24px 4px; max-width: 1280px; margin: 0 auto; }
+  header h1 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+  header p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+  main { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px;
+         padding: 16px 24px 32px; max-width: 1280px; margin: 0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px 24px; }
+                              header { padding: 16px 16px 0; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stack { display: grid; gap: 12px; align-content: start; }
+  h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;
+       letter-spacing: .06em; color: var(--muted); }
+  .drop { display: block; text-align: center; padding: 22px 12px; border: 2px dashed var(--line);
+          border-radius: 12px; cursor: pointer; color: var(--muted); transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over, .drop:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .drop strong { color: var(--ink); display: block; }
+  .drop small { display: block; margin-top: 2px; }
+  .drop input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  select, button { font: inherit; }
+  select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line);
+           background: var(--card); color: var(--ink); }
+  .op-title { margin: 10px 0 2px; font-weight: 600; }
+  .op-sum { margin: 0 0 8px; color: var(--muted); font-size: 14px; }
+  code, .formula { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+  .formula { display: block; padding: 6px 10px; border-radius: 8px; background: var(--bg); overflow-x: auto; }
+  .ref { margin-top: 6px; color: var(--muted); font-size: 12px; }
+  .param { margin-top: 12px; }
+  .param[hidden] { display: none; }
+  .param label { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 500; }
+  .param .val { font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--accent); }
+  .param .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+  button { padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card);
+           color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); width: 100%; margin-top: 8px; }
+  .diag p { margin: 0; font-size: 14px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
+  figure { margin: 0; }
+  figcaption { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  figcaption .tag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  .frame { display: grid; place-items: center; min-height: 220px; background:
+           repeating-conic-gradient(var(--bg) 0 25%, var(--card) 0 50%) 0 0 / 16px 16px;
+           border-radius: 8px; overflow: hidden; }
+  .frame img { display: block; max-width: 100%; max-height: 420px; }
+  .empty { color: var(--muted); font-size: 14px; padding: 24px; text-align: center; }
+  .charts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 900px) { .charts { grid-template-columns: 1fr; } }
+  canvas { width: 100%; height: 190px; display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 600; }
+  .status { min-height: 22px; font-size: 14px; color: var(--muted); }
+  .status.err { color: var(--err); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  a.dl { color: var(--accent); font-weight: 600; text-decoration: none; }
+  a.dl[aria-disabled=true] { pointer-events: none; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>ImgEnhance</h1>
+  <p>Peningkatan kualitas citra: pilih operasi, atur parameternya, dan lihat perubahan histogram secara langsung.</p>
+</header>
+<main>
+  <section class="stack" aria-label="Pengaturan">
+    <div class="card">
+      <h2>1. Gambar</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/jpeg,image/png,image/webp,image/bmp">
+        <strong id="drop-name">Pilih atau seret gambar ke sini</strong>
+        <small>JPG, PNG, WebP, BMP (maks. 8 MB)</small>
+      </label>
+    </div>
+    <div class="card">
+      <h2>2. Operasi</h2>
+      <select id="op" aria-label="Operasi"></select>
+      <div class="op-title" id="op-title"></div>
+      <p class="op-sum" id="op-sum"></p>
+      <code class="formula" id="op-formula"></code>
+      <div class="ref" id="op-ref"></div>
+      <div id="params"></div>
+      <button id="reset" type="button" style="margin-top:12px">Kembalikan parameter bawaan</button>
+    </div>
+    <div class="card diag" id="diag" hidden>
+      <h2>Diagnosis histogram</h2>
+      <p id="diag-text"></p>
+      <button class="primary" id="diag-apply" type="button" hidden></button>
+    </div>
+  </section>
+
+  <section class="stack" aria-label="Hasil">
+    <div class="card">
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <div class="pair">
+        <figure>
+          <figcaption><span class="tag" style="background:var(--before)"></span>Citra asli</figcaption>
+          <div class="frame"><img id="img-before" alt="Citra asli" hidden><div class="empty" id="empty">Belum ada gambar</div></div>
+        </figure>
+        <figure>
+          <figcaption><span class="tag" style="background:var(--after)"></span>Hasil</figcaption>
+          <div class="frame"><img id="img-after" alt="Hasil peningkatan citra" hidden></div>
+        </figure>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <span class="status" id="note"></span>
+        <a class="dl" id="download" aria-disabled="true">Unduh hasil (PNG)</a>
+      </div>
+    </div>
+    <div class="charts">
+      <div class="card"><h2>Histogram asli</h2><canvas id="c-before"></canvas></div>
+      <div class="card"><h2>Histogram hasil</h2><canvas id="c-after"></canvas></div>
+      <div class="card"><h2>Kurva s = T(r)</h2><canvas id="c-curve"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Statistik (luminans)</h2>
+      <table>
+        <thead><tr><th></th><th>Asli</th><th>Hasil</th></tr></thead>
+        <tbody id="stats"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const state = { ops: [], op: null, file: null, timer: null, abort: null, last: null, controls: {} };
+const STAT_ROWS = [["mean", "Rata-rata"], ["std", "Simpangan baku"], ["range", "Min - Maks"],
+                   ["spread", "Sebaran p2-p98"], ["entropy", "Entropi (bit)"]];
+
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+/* ---------- daftar operasi dan kontrol parameter ---------- */
+async function init() {
+  const res = await fetch("/api/operations");
+  state.ops = (await res.json()).operations;
+  const groups = new Map();
+  for (const op of state.ops) {
+    if (!groups.has(op.group)) groups.set(op.group, []);
+    groups.get(op.group).push(op);
+  }
+  for (const [group, ops] of groups) {
+    const og = document.createElement("optgroup");
+    og.label = group;
+    for (const op of ops) og.append(new Option(op.title, op.name));
+    $("op").append(og);
+  }
+  selectOperation("equalize");
+}
+
+function selectOperation(name, preset = {}) {
+  state.op = state.ops.find((o) => o.name === name);
+  $("op").value = name;
+  $("op-title").textContent = state.op.title;
+  $("op-sum").textContent = state.op.summary;
+  $("op-formula").textContent = state.op.formula;
+  $("op-ref").textContent = "Rujukan: " + state.op.ref;
+  buildControls(state.op, preset);
+  schedule();
+}
+
+function buildControls(op, preset) {
+  const box = $("params");
+  box.replaceChildren();
+  state.controls = {};
+  for (const p of op.params) {
+    const value = p.name in preset ? preset[p.name] : p.default;
+    const row = document.createElement("div");
+    row.className = "param";
+    const id = "p-" + p.name;
+    let input, readout = null;
+    if (p.kind === "bool") {
+      const label = document.createElement("label");
+      label.className = "check";
+      input = Object.assign(document.createElement("input"), { type: "checkbox", id, checked: !!value });
+      label.append(input, p.label);
+      row.append(label);
+    } else {
+      const label = document.createElement("label");
+      label.htmlFor = id;
+      label.append(p.label);
+      if (p.kind === "choice") {
+        input = document.createElement("select");
+        input.id = id;
+        for (const c of p.choices) input.append(new Option(c, c));
+        input.value = value;
+        row.append(label, input);
+      } else {
+        readout = document.createElement("span");
+        readout.className = "val";
+        readout.textContent = value;
+        label.append(readout);
+        input = Object.assign(document.createElement("input"),
+          { type: "range", id, min: p.min, max: p.max, step: p.step || 1, value });
+        row.append(label, input);
+      }
+    }
+    if (p.help) {
+      const hint = document.createElement("div");
+      hint.className = "hint";
+      hint.textContent = p.help;
+      row.append(hint);
+    }
+    input.addEventListener("input", () => {
+      if (readout) readout.textContent = input.value;
+      refreshVisibility();
+      schedule();
+    });
+    state.controls[p.name] = { param: p, input, row };
+    box.append(row);
+  }
+  refreshVisibility();
+}
+
+function refreshVisibility() {
+  for (const { param, row } of Object.values(state.controls)) {
+    if (!param.when) { row.hidden = false; continue; }
+    const [other, expected] = param.when;
+    row.hidden = state.controls[other].input.value !== expected;
+  }
+}
+
+function currentParams() {
+  const out = {};
+  for (const [name, { param, input }] of Object.entries(state.controls)) {
+    if (param.kind === "bool") out[name] = input.checked;
+    else if (param.kind === "int") out[name] = parseInt(input.value, 10);
+    else if (param.kind === "float") out[name] = parseFloat(input.value);
+    else out[name] = input.value;
+  }
+  return out;
+}
+
+/* ---------- unggah dan permintaan ke server ---------- */
+function setFile(file) {
+  if (!file) return;
+  state.file = file;
+  $("drop-name").textContent = file.name;
+  const url = URL.createObjectURL(file);
+  const before = $("img-before");
+  before.onload = () => URL.revokeObjectURL(url);
+  before.src = url;
+  before.hidden = false;
+  $("empty").hidden = true;
+  schedule(0);
+}
+
+function schedule(delay = 150) {
+  clearTimeout(state.timer);
+  state.timer = setTimeout(run, delay);
+}
+
+function setStatus(text, isError = false) {
+  const el = $("status");
+  el.textContent = text;
+  el.classList.toggle("err", isError);
+}
+
+async function run() {
+  if (!state.file || !state.op) return;
+  if (state.abort) state.abort.abort();
+  const controller = new AbortController();
+  state.abort = controller;
+  setStatus("Memproses...");
+  const body = new FormData();
+  body.append("file", state.file);
+  body.append("operation", state.op.name);
+  body.append("params", JSON.stringify(currentParams()));
+  try {
+    const res = await fetch("/api/enhance", { method: "POST", body, signal: controller.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = Array.isArray(data.detail) ? data.detail.map((d) => d.msg).join("; ") : data.detail;
+      throw new Error(detail || res.statusText);
+    }
+    state.last = data;
+    render(data);
+    setStatus("");
+  } catch (err) {
+    if (err.name !== "AbortError") setStatus(err.message, true);
+  }
+}
+
+/* ---------- tampilan hasil ---------- */
+function render(data) {
+  const after = $("img-after");
+  after.src = data.image_png;
+  after.hidden = false;
+  const link = $("download");
+  link.href = data.image_png;
+  link.download = `${state.file.name.replace(/\.[^.]+$/, "")}_${data.operation.name}.png`;
+  link.removeAttribute("aria-disabled");
+  $("note").textContent = data.note ? data.note : `${data.size[0]} x ${data.size[1]} piksel`;
+
+  const cell = (stats, key) => key === "range" ? `${stats.min}-${stats.max}`
+    : typeof stats[key] === "number" && !Number.isInteger(stats[key]) ? stats[key].toFixed(key === "entropy" ? 2 : 1)
+    : stats[key];
+  $("stats").replaceChildren(...STAT_ROWS.map(([key, label]) => {
+    const tr = document.createElement("tr");
+    for (const text of [label, cell(data.before.stats, key), cell(data.after.stats, key)]) {
+      const td = document.createElement("td");
+      td.textContent = text;
+      tr.append(td);
+    }
+    return tr;
+  }));
+
+  drawCharts(data);
+
+  const d = data.diagnosis;
+  $("diag").hidden = false;
+  $("diag-text").textContent = d.summary;
+  const apply = $("diag-apply");
+  apply.hidden = !d.suggestion.length;
+  if (d.suggestion.length) {
+    const s = d.suggestion[0];
+    apply.textContent = "Terapkan saran: " + d.steps[0];
+    apply.onclick = () => selectOperation(s.name, s.params);
+  }
+}
+
+function drawCharts(data) {
+  drawHistogram($("c-before"), data.before.histogram, css("--before"));
+  drawHistogram($("c-after"), data.after.histogram, css("--after"));
+  drawCurve($("c-curve"), data.curve);
+}
+
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  canvas.width = Math.round(w * dpr);
+  canvas.height = Math.round(h * dpr);
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.font = "11px system-ui, sans-serif";
+  return { ctx, w, h };
+}
+
+function drawHistogram(canvas, channels, accent) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  const x0 = 6, x1 = w - 6, y0 = 6, y1 = h - 20;
+  const all = Object.values(channels).flat();
+  const peak = Math.max(...all, 1);
+  const sorted = [...all].sort((a, b) => a - b);
+  const p99 = sorted[Math.floor(0.99 * (sorted.length - 1))];
+  const cap = Math.min(peak, Math.max(p99 * 1.25, peak * 0.1, 1));  // puncak ekstrem dipotong
+
+  ctx.fillStyle = css("--muted");
+  ctx.strokeStyle = css("--line");
+  ctx.textAlign = "center";
+  for (const t of [0, 64, 128, 192, 255]) {
+    const x = x0 + (t / 255) * (x1 - x0);
+    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+    ctx.fillText(t, Math.min(Math.max(x, 10), w - 10), h - 6);
+  }
+  const colors = { gray: accent, red: css("--red"), green: css("--green"), blue: css("--blue") };
+  for (const [name, bins] of Object.entries(channels)) {
+    ctx.beginPath();
+    bins.forEach((v, k) => {
+      const x = x0 + (k / 255) * (x1 - x0);
+      const y = y1 - (Math.min(v, cap) / cap) * (y1 - y0);
+      k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = colors[name];
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    if (name === "gray") {
+      ctx.lineTo(x1, y1); ctx.lineTo(x0, y1); ctx.closePath();
+      ctx.globalAlpha = 0.25; ctx.fillStyle = accent; ctx.fill(); ctx.globalAlpha = 1;
+    }
+  }
+  ctx.fillStyle = css("--muted");
+  ctx.textAlign = "right";
+  ctx.fillText(`puncak ${peak.toLocaleString("id-ID")}${cap < peak ? " (dipotong)" : ""}`, w - 8, 14);
+}
+
+function drawCurve(canvas, curve) {
+  const { ctx, w, h } = setupCanvas(canvas);
+  if (!curve) {
+    ctx.fillStyle = css("--muted");
+    ctx.textAlign = "center";
+    ctx.fillText("Tidak ada kurva T(r): operasi aras lokal", w / 2, h / 2 - 4);
+    ctx.fillText("atau tiap kanal warna diproses sendiri", w / 2, h / 2 + 12);
+    return;
+  }
+  const side = Math.min(w - 44, h - 30);
+  const x0 = (w - side) / 2 + 10, y1 = h - 16, x1 = x0 + side, y0 = y1 - side;
+  const px = (r) => x0 + (r / 255) * side, py = (s) => y1 - (s / 255) * side;
+  ctx.strokeStyle = css("--line");
+  ctx.fillStyle = css("--muted");
+  ctx.textAlign = "center";
+  for (const t of [0, 64, 128, 192, 255]) {
+    ctx.beginPath(); ctx.moveTo(px(t), y0); ctx.lineTo(px(t), y1); ctx.moveTo(x0, py(t)); ctx.lineTo(x1, py(t)); ctx.stroke();
+    ctx.fillText(t, px(t), y1 + 12);
+  }
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = css("--muted");
+  ctx.beginPath(); ctx.moveTo(px(0), py(0)); ctx.lineTo(px(255), py(255)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  curve.forEach((s, r) => (r === 0 ? ctx.moveTo(px(r), py(s)) : ctx.lineTo(px(r), py(s))));
+  ctx.strokeStyle = css("--after");
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+/* ---------- peristiwa ---------- */
+$("file").addEventListener("change", (e) => setFile(e.target.files[0]));
+$("op").addEventListener("change", (e) => selectOperation(e.target.value));
+$("reset").addEventListener("click", () => selectOperation(state.op.name));
+const drop = $("drop");
+for (const type of ["dragenter", "dragover"]) drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.add("over"); });
+for (const type of ["dragleave", "drop"]) drop.addEventListener(type, (e) => { e.preventDefault(); drop.classList.remove("over"); });
+drop.addEventListener("drop", (e) => setFile(e.dataTransfer.files[0]));
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => state.last && drawCharts(state.last));
+window.addEventListener("resize", () => state.last && drawCharts(state.last));
+
+init().catch((err) => setStatus("Gagal memuat daftar operasi: " + err.message, true));
+</script>
+</body>
+</html>
